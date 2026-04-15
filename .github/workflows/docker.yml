@@ -2,10 +2,8 @@ name: Build and Push Docker Image
 
 on:
   push:
-    tags:
-      - 'v*'
-
-  workflow_dispatch:
+    branches:
+      - main # Trigger on push to main branch
 
 jobs:
   docker:
@@ -24,12 +22,12 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            --build-arg VERSION=${{ github.ref_name }} \
-            -t gabehf/music-importer:${{ github.ref_name }} \
-            -t gabehf/music-importer:latest \
+            --build-arg VERSION=${{ github.sha }} \
+            -t gabehf/koito-obs-overlay:${{ github.sha }} \
+            -t gabehf/koito-obs-overlay:latest \
             .
 
       - name: Push Docker image
         run: |
-          docker push gabehf/music-importer:${{ github.ref_name }}
-          docker push gabehf/music-importer:latest
+          docker push gabehf/koito-obs-overlay:${{ github.sha }}
+          docker push gabehf/koito-obs-overlay:latest
