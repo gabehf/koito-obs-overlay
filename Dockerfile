@@ -7,7 +7,7 @@ ENV CGO_ENABLED=0
 WORKDIR /app
 
 # Copy go.mod and go.sum first to leverage Docker cache
-COPY go.mod go.sum ./
+COPY go.mod ./
 RUN go mod download
 
 # Copy the source code
