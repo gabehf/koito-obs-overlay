@@ -1,5 +1,5 @@
 # --- Build Stage ---
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Set necessary environment variables for CGO compilation if needed, though usually not for simple Go apps
 ENV CGO_ENABLED=0
