@@ -19,15 +19,17 @@ type Artist struct {
 }
 
 type Track struct {
-	ID    int      `json:"id"`
-	Title string   `json:"title"`
-	Image string   `json:"image"`
+	ID    int    `json:"id"`
+	Title string `json:"title"`
+	Image struct {
+		Small string `json:"small"`
+	} `json:"image"`
 	Artists []Artist `json:"artists"`
 }
 
 type NowPlayingResponse struct {
-	CurrentlyPlaying bool   `json:"currently_playing"`
-	Track            Track  `json:"track"`
+	CurrentlyPlaying bool  `json:"currently_playing"`
+	Track            Track `json:"track"`
 }
 
 var (
@@ -60,7 +62,7 @@ func main() {
 func pollEndpoint() {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-	
+
 	client := &http.Client{Timeout: 2 * time.Second}
 
 	for range ticker.C {
@@ -73,7 +75,7 @@ func pollEndpoint() {
 		var data NowPlayingResponse
 		err = json.NewDecoder(resp.Body).Decode(&data)
 		resp.Body.Close()
-		
+
 		if err != nil {
 			log.Printf("Error decoding JSON: %v", err)
 			continue
@@ -90,20 +92,15 @@ func pollEndpoint() {
 func stateHandler(w http.ResponseWriter, r *http.Request) {
 	dataMutex.RLock()
 	defer dataMutex.RUnlock()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(currentData)
 }
 
 // imageProxyHandler proxies the album art to prevent CORS issues in the browser
 func imageProxyHandler(w http.ResponseWriter, r *http.Request) {
-	imgUUID := strings.TrimPrefix(r.URL.Path, "/image/")
-	if imgUUID == "" {
-		http.NotFound(w, r)
-		return
-	}
-	
-	targetURL := fmt.Sprintf("%s/images/large/%s", koitoAddress, imgUUID)
+
+	targetURL := fmt.Sprintf("%s%s", koitoAddress, r.URL.Path)
 	resp, err := http.Get(targetURL)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		http.Error(w, "Image not found", http.StatusNotFound)
@@ -113,7 +110,7 @@ func imageProxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 	io.Copy(w, resp.Body)
 }
@@ -134,7 +131,7 @@ const htmlPage = `
     <style>
         body {
             /* Pure green screen background */
-            background-color: #00FF00; 
+            background-color: #00FF00;
             color: white;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
@@ -192,7 +189,7 @@ const htmlPage = `
             try {
                 const response = await fetch('/state');
                 const data = await response.json();
-                
+
                 const container = document.getElementById('now-playing-container');
                 const img = document.getElementById('album-art');
                 const title = document.getElementById('title');
@@ -200,15 +197,15 @@ const htmlPage = `
 
                 if (data.currently_playing && data.track) {
                     container.style.opacity = '1';
-                    
+
                     // Only update the image if the source actually changed to prevent flickering
-                    const newImgSrc = '/image/' + data.track.image;
+                    const newImgSrc = data.track.image.small;
                     if (!img.src.endsWith(newImgSrc)) {
                         img.src = newImgSrc;
                     }
 
                     title.innerText = data.track.title;
-                    
+
                     // Join multiple artists with a comma if they exist
                     if (data.track.artists && data.track.artists.length > 0) {
                         artist.innerText = data.track.artists.map(a => a.name).join(', ');
